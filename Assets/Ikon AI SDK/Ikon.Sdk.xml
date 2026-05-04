@@ -1,0 +1,666 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Ikon.Sdk</name>
+    </assembly>
+    <members>
+        <member name="T:Ikon.Sdk.MessageEventArgs">
+            <summary>
+            Event arguments for protocol messages.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.MessageEventArgs.#ctor(Ikon.Common.Core.Protocol.ProtocolMessage)">
+            <summary>
+            Event arguments for protocol messages.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.MessageEventArgs.Message">
+            <summary>
+            The protocol message.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.AsyncEventHandler`1">
+            <summary>
+            Async event handler delegate.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.IkonClient">
+             <summary>
+             Main client for connecting to Ikon servers.
+            
+             Features:
+             - Single connection per client instance
+             - Three authentication modes: Local, ApiKey, Backend
+             - Automatic reconnection with exponential backoff
+             - Audio encoding/decoding helpers
+             - Function registration via FunctionRegistry
+             </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.Config">
+            <summary>
+            Configuration used to create this client.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.FunctionRegistry">
+            <summary>
+            Function registry for this client instance.
+            Each IkonClient has its own isolated FunctionRegistry, allowing multiple SDK connections
+            to run independently (e.g., when running SDK inside an Ikon app, or multiple SDK clients).
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.State">
+            <summary>
+            Current connection state.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.ClientContext">
+            <summary>
+            Client context from the server. Available after connection is established.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.GlobalState">
+            <summary>
+            Global state from the server. Available after connection is established.
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.StateChangedAsync">
+            <summary>
+            Event triggered when connection state changes.
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.MessageReceivedAsync">
+            <summary>
+            Event triggered when a protocol message is received.
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.ErrorOccurredAsync">
+            <summary>
+            Event triggered when an error occurs.
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.ReadyAsync">
+            <summary>
+            Event triggered when connection is fully established and ready.
+            Called before SignalReadyAsync() should be called.
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.StoppingAsync">
+            <summary>
+            Event triggered when server is stopping.
+            Messages can still be sent in this handler.
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.DisconnectedAsync">
+            <summary>
+            Event triggered after disconnection.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.IkonClient.ConnectionStateEventArgs">
+            <summary>
+            Event arguments for connection state changes.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.ConnectionStateEventArgs.#ctor(Ikon.Sdk.ConnectionState)">
+            <summary>
+            Event arguments for connection state changes.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.ConnectionStateEventArgs.State">
+            <summary>
+            The new connection state.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.IkonClient.ErrorEventArgs">
+            <summary>
+            Event arguments for errors.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.ErrorEventArgs.#ctor(System.Exception)">
+            <summary>
+            Event arguments for errors.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.ErrorEventArgs.Error">
+            <summary>
+            The error that occurred.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.#ctor(Ikon.Sdk.IkonClientConfig)">
+            <summary>
+            Creates a new IkonClient with the specified configuration.
+            Each IkonClient instance gets its own FunctionRegistry, enabling multiple SDK connections
+            to run independently without conflicts (e.g., when running SDK inside an Ikon app).
+            </summary>
+            <param name="config">Client configuration. Exactly one of Local, ApiKey, or Backend must be specified.</param>
+            <exception cref="T:System.ArgumentException">Thrown when configuration is invalid.</exception>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.ConnectAsync(System.Threading.CancellationToken)">
+            <summary>
+            Connect to the Ikon server.
+            </summary>
+            <param name="ct">Cancellation token.</param>
+            <exception cref="T:System.InvalidOperationException">Thrown if already connected or connecting.</exception>
+            <exception cref="T:System.Exception">Thrown on connection failure.</exception>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.DisconnectAsync">
+            <summary>
+            Disconnect from the server and release connection-specific resources.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.SignalReadyAsync">
+            <summary>
+            Signal that the client is ready.
+            Should be called after initialization in the ReadyAsync event handler.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.WaitForClientAsync(System.String,System.String,System.TimeSpan)">
+            <summary>
+            Wait for a specific client to connect and become ready.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.SendMessageAsync(Ikon.Common.Core.Protocol.ProtocolMessage)">
+            <summary>
+            Send a protocol message to the server.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.SendMessageAsync``1(``0)">
+            <summary>
+            Send a typed payload to the server.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.DisposeAsync">
+            <summary>
+            Disposes the client and releases all resources.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClient.DefaultEncoderOptions">
+            <summary>Default encoder options for audio output</summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.AudioInputStreamBeginAsync">
+            <summary>
+            Event raised when an incoming audio stream begins
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.AudioInputFrameAsync">
+            <summary>
+            Event raised when an incoming audio frame is received and decoded
+            </summary>
+        </member>
+        <member name="E:Ikon.Sdk.IkonClient.AudioInputStreamEndAsync">
+            <summary>
+            Event raised when an incoming audio stream ends
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.SendAudioAsync(System.ReadOnlyMemory{System.Single},System.Int32,System.Int32,System.Boolean,System.Boolean,System.String,System.TimeSpan,Ikon.Resonance.Core.AudioEncoderOptions,System.Collections.Generic.IReadOnlyList{System.Int32})">
+            <summary>
+            Sends audio data to the server.
+            </summary>
+            <param name="samples">Floating point PCM samples in range [-1.0, 1.0]</param>
+            <param name="sampleRate">Sample rate</param>
+            <param name="channelCount">Number of channels</param>
+            <param name="isFirst">Whether the first sample of the sent audio is the beginning</param>
+            <param name="isLast">Whether the last sample of the sent audio is the end</param>
+            <param name="streamId">Optional unique identifier for this audio stream</param>
+            <param name="totalDuration">Optional total duration of the audio to be output, if known</param>
+            <param name="encoderOptions">Optional encoder options. Falls back to DefaultEncoderOptions if not specified</param>
+            <param name="targetIds">Optional list of target session IDs to send to</param>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.WaitForAIAgentAsyncLegacy">
+            <summary>
+            Wait for the AI agent to connect and become ready.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.SendTextLegacy(System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Send a text message to the channel.
+            </summary>
+            <param name="text">Text to send</param>
+            <param name="generateChatMessage">Whether to generate UI messages</param>
+            <param name="sendBackToSender">Whether to route the message back to sender</param>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.SetStateLegacy(System.String,System.Object)">
+            <summary>
+            Set a state variable in the LLM shader.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.ClearStateLegacy">
+            <summary>
+            Clear the LLM shader state.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClient.GenerateAnswerLegacy">
+            <summary>
+            Trigger answer generation without sending input.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.IkonSdkPluginConfig">
+            <summary>
+            Internal plugin wrapper.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.AudioInputStreamingMode">
+            <summary>
+            Controls when incoming audio frames are output to listeners
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.AudioInputStreamingMode.Streaming">
+            <summary>
+            Output frames immediately as they arrive
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.AudioInputStreamingMode.DelayUntilTotalDurationKnown">
+            <summary>
+            Buffer frames until the total duration is known
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.AudioInputStreamingMode.DelayUntilIsLast">
+            <summary>
+            Buffer all frames until the last frame arrives (full buffering)
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.AudioInputStreamBeginEventArgs">
+            <summary>
+            Event arguments raised when an incoming audio stream begins
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.AudioInputStreamBeginEventArgs.#ctor(System.String,System.String,System.String,Ikon.Common.Core.Protocol.AudioCodec,System.String,System.Int32,System.Int32)">
+            <summary>
+            Event arguments raised when an incoming audio stream begins
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.StreamId">
+            <summary>Unique identifier for the audio stream</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.Description">
+            <summary>Description of the audio stream</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.SourceType">
+            <summary>Source type of the audio stream (e.g., "microphone")</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.Codec">
+            <summary>Audio codec used for encoding/decoding</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.CodecDetails">
+            <summary>Codec-specific details</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.SampleRate">
+            <summary>Sample rate in Hz (can be modified by event handler)</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.ChannelCount">
+            <summary>Number of audio channels</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamBeginEventArgs.StreamingMode">
+            <summary>Controls when frames are output (can be modified by event handler)</summary>
+        </member>
+        <member name="T:Ikon.Sdk.AudioInputFrameEventArgs">
+            <summary>
+            Event arguments raised when an incoming audio frame is received
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.AudioInputFrameEventArgs.#ctor(System.String,System.Single[],System.Boolean,System.Boolean,System.TimeSpan)">
+            <summary>
+            Event arguments raised when an incoming audio frame is received
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputFrameEventArgs.StreamId">
+            <summary>Unique identifier for the audio stream</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputFrameEventArgs.Samples">
+            <summary>Decoded floating point PCM samples in range [-1.0, 1.0]</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputFrameEventArgs.IsFirst">
+            <summary>Whether this is the first frame in a sequence</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputFrameEventArgs.IsLast">
+            <summary>Whether this is the last frame in a sequence</summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputFrameEventArgs.TotalDuration">
+            <summary>Total duration of the audio if known, otherwise zero</summary>
+        </member>
+        <member name="T:Ikon.Sdk.AudioInputStreamEndEventArgs">
+            <summary>
+            Event arguments raised when an incoming audio stream ends
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.AudioInputStreamEndEventArgs.#ctor(System.String)">
+            <summary>
+            Event arguments raised when an incoming audio stream ends
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.AudioInputStreamEndEventArgs.StreamId">
+            <summary>Unique identifier for the audio stream</summary>
+        </member>
+        <member name="T:Ikon.Sdk.BackendType">
+            <summary>
+            Backend environment type.
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.BackendType.Production">
+            <summary>
+            Production backend (api.prod.ikon.live).
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.BackendType.Development">
+            <summary>
+            Development backend (api.dev.ikon.live).
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.LocalConfig">
+            <summary>
+            Configuration for local development mode.
+            Connects directly to a local Ikon server.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.LocalConfig.Host">
+            <summary>
+            Host of the local Ikon server.
+            Example: "localhost"
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.LocalConfig.HttpsPort">
+            <summary>
+            HTTPS port of the local Ikon server.
+            Example: 8443
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.LocalConfig.UserId">
+            <summary>
+            User ID for the connection.
+            Falls back to "local" if not provided (with a warning).
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.BackendConfig">
+            <summary>
+            Configuration for backend authentication mode.
+            Uses existing IkonBackend login credentials (from login.json or environment variables).
+            This is the preferred mode for internal Ikon C# applications.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.BackendConfig.SpaceId">
+            <summary>
+            Space ID (MongoDB ObjectId from portal).
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.BackendConfig.ChannelKey">
+            <summary>
+            Optional channel key (slug) for spaces with multiple channels.
+            If not provided, connects to the first available channel.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.BackendConfig.SessionId">
+            <summary>
+            Optional session ID for targeting precomputed sessions.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.BackendConfig.ExternalUserId">
+            <summary>
+            External user identifier - an arbitrary string to identify the user.
+            This does not need to be an internal Ikon user ID.
+            The backend will create/map an internal user for this external ID.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.BackendConfig.UserType">
+            <summary>
+            User type for this connection.
+            Default: Human
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.BackendConfig.ClientType">
+            <summary>
+            Client type for this connection.
+            Default: DesktopApp
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.ApiKeyConfig">
+            <summary>
+            Configuration for API key authentication mode.
+            Use this for programmatic access to cloud channels.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.ApiKey">
+            <summary>
+            API key for the space (from portal, format: 'ikon-xxxxx').
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.SpaceId">
+            <summary>
+            Space ID (MongoDB ObjectId from portal).
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.ExternalUserId">
+            <summary>
+            External user identifier - an arbitrary string to identify the user.
+            This does not need to be an internal Ikon user ID.
+            The backend will create/map an internal user for this external ID.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.ChannelKey">
+            <summary>
+            Optional channel key (slug) for spaces with multiple channels.
+            If not provided, connects to the first available channel.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.SessionId">
+            <summary>
+            Optional session ID for targeting precomputed sessions.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.BackendType">
+            <summary>
+            Backend environment. Defaults to Production.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.UserType">
+            <summary>
+            User type for this connection.
+            Default: Human
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.ApiKeyConfig.ClientType">
+            <summary>
+            Client type for this connection.
+            Default: DesktopApp
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.TimeoutConfig">
+            <summary>
+            Timeout configuration for the SDK.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.TimeoutConfig.InitialReconnectDelay">
+            <summary>
+            Initial delay before the first reconnection attempt.
+            Each subsequent attempt doubles the delay (e.g. 500ms, 1s, 2s, 4s).
+            Default: 500 milliseconds
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.TimeoutConfig.MaxReconnectAttempts">
+            <summary>
+            Maximum number of reconnection attempts.
+            Default: 4
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.IkonClientConfig">
+            <summary>
+            Configuration for IkonClient.
+            Exactly one of Local, ApiKey, or Backend must be provided.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.Local">
+            <summary>
+            Local server configuration for development mode.
+            Use this when connecting to a local Ikon server.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.ApiKey">
+            <summary>
+            API key authentication for programmatic access.
+            Use this for libraries, scripts, plugins that need to connect to cloud channels.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.Backend">
+            <summary>
+            Backend authentication using existing IkonBackend login.
+            Use this for internal Ikon C# applications that have already logged in via CLI.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.DeviceId">
+            <summary>
+            Device ID for the connection.
+            If not provided, a random one will be generated.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.ProductId">
+            <summary>
+            Product identifier.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.VersionId">
+            <summary>
+            Version identifier.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.InstallId">
+            <summary>
+            Installation ID.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.Locale">
+            <summary>
+            User locale (e.g., "en-US").
+            Default: "en-US"
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.Description">
+            <summary>
+            Description for this client.
+            Default: "Ikon SDK C#"
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.UserAgent">
+            <summary>
+            User agent string.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.Parameters">
+            <summary>
+            Client parameters passed to the server.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.OpcodeGroupsFromServer">
+            <summary>
+            Opcode groups to receive from server.
+            Default: All groups
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.OpcodeGroupsToServer">
+            <summary>
+            Opcode groups to send to server.
+            Default: All groups
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.PayloadType">
+            <summary>
+            Payload type for protocol messages.
+            Default: Teleport
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.IkonClientConfig.Timeouts">
+            <summary>
+            Timeout configuration.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.IkonClientConfig.Validate">
+            <summary>
+            Validates the configuration.
+            </summary>
+            <exception cref="T:System.ArgumentException">Thrown when configuration is invalid.</exception>
+        </member>
+        <member name="T:Ikon.Sdk.ConnectionState">
+            <summary>
+            Connection state of the IkonClient.
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.ConnectionState.Idle">
+            <summary>
+            Initial state, not connected.
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.ConnectionState.Connecting">
+            <summary>
+            Authentication and connection in progress.
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.ConnectionState.Connected">
+            <summary>
+            Fully connected and ready.
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.ConnectionState.Reconnecting">
+            <summary>
+            Lost connection, attempting automatic reconnect.
+            </summary>
+        </member>
+        <member name="F:Ikon.Sdk.ConnectionState.Offline">
+            <summary>
+            Disconnected (user-initiated or max retries exceeded).
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.ConnectionStateExtensions">
+            <summary>
+            Helper methods for ConnectionState.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.ConnectionStateExtensions.IsConnecting(Ikon.Sdk.ConnectionState)">
+            <summary>
+            Returns true if the state represents an active connection attempt.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.ConnectionStateExtensions.IsConnected(Ikon.Sdk.ConnectionState)">
+            <summary>
+            Returns true if the state represents a successful connection.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.ConnectionStateExtensions.IsOffline(Ikon.Sdk.ConnectionState)">
+            <summary>
+            Returns true if the state represents a disconnected state.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.AuthResult">
+            <summary>
+            Result of authentication containing the connect URL for TCP transport.
+            </summary>
+        </member>
+        <member name="P:Ikon.Sdk.AuthResult.ConnectUrl">
+            <summary>
+            The URL to connect to for TCP transport.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.Authenticator">
+            <summary>
+            Handles authentication for both local and API key modes.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.Authenticator.AuthenticateLocalAsync(Ikon.Sdk.IkonClientConfig,Ikon.Sdk.LocalConfig,System.Threading.CancellationToken)">
+            <summary>
+            Authenticate with a local Ikon server using the /connect-token endpoint.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.Authenticator.AuthenticateApiKeyAsync(Ikon.Sdk.IkonClientConfig,Ikon.Sdk.ApiKeyConfig,System.Threading.CancellationToken)">
+            <summary>
+            Authenticate using an API key.
+            </summary>
+        </member>
+        <member name="M:Ikon.Sdk.Authenticator.AuthenticateBackendAsync(Ikon.Sdk.IkonClientConfig,Ikon.Sdk.BackendConfig,System.Threading.CancellationToken)">
+            <summary>
+            Authenticate using existing IkonBackend login credentials.
+            </summary>
+        </member>
+        <member name="T:Ikon.Sdk.Version">
+            <summary>Version class</summary>
+        </member>
+        <member name="F:Ikon.Sdk.Version.VersionString">
+            <summary>Version string for the library</summary>
+        </member>
+    </members>
+</doc>

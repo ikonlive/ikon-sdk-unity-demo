@@ -1,6 +1,7 @@
 using Ikon.Common.Core;
 using Ikon.Common.Core.Protocol;
-using Ikon.Sdk.DotNet;
+using Ikon.Sdk;
+using LogType = Ikon.Common.Core.Protocol.LogType;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,8 +18,7 @@ public class SceneHandler : MonoBehaviour
     public ButtonHandler SendButtonHandler;
     public GameObject SendButton;
 
-    private IIkonClient _ikonClient;
-    private Channel _channel;
+    private IkonClient _ikonClient;
     private readonly ConcurrentQueue<System.Action> _mainThreadActions = new();
     private readonly Dictionary<string, AudioStream> _audioStreams = new();
     private AudioClip _recordingAudioClip;
@@ -49,50 +49,51 @@ public class SceneHandler : MonoBehaviour
     public async void Start()
     {
         Log.Instance.LogEvent += OnLogEvent;
-        Log.Instance.Info($"Ikon AI C# SDK, version: {Ikon.Sdk.DotNet.Version.VersionString}");
+        Log.Instance.Info($"Ikon AI C# SDK, version: {Ikon.Sdk.Version.VersionString}");
 
         SendButtonHandler.PressStart += OnSendButtonPressStart;
         SendButtonHandler.PressStop += OnSendButtonPressStop;
 
-        var ikonClientInfo = new Sdk.IkonClientInfo
+        bool useProductionEndpoint = Environment.GetEnvironmentVariable("IKON_SDK_USE_PROD_ENDPOINT")?.Trim()
+            .Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? true;
+
+        var config = new IkonClientConfig
         {
-            // Get the API key from the Ikon Portal and then supply it with e.g. environment variable. Do not hardcode it.
-            ApiKey = Environment.GetEnvironmentVariable("IKON_SDK_API_KEY") ??
-                     throw new Exception("API key is missing. Please set the 'IKON_SDK_API_KEY' environment variable."),
+            ApiKey = new ApiKeyConfig
+            {
+                // Get the API key from the Ikon Portal and then supply it with e.g. environment variable. Do not hardcode it.
+                ApiKey = Environment.GetEnvironmentVariable("IKON_SDK_API_KEY") ??
+                         throw new Exception("API key is missing. Please set the 'IKON_SDK_API_KEY' environment variable."),
 
-            // Get the space ID from Ikon Portal. This can be hardcoded.
-            SpaceId = Environment.GetEnvironmentVariable("IKON_SDK_SPACE_ID") ?? "<<SET_SPACE_ID_HERE>>",
+                // Get the space ID from Ikon Portal. This can be hardcoded.
+                SpaceId = Environment.GetEnvironmentVariable("IKON_SDK_SPACE_ID") ?? "<<SET_SPACE_ID_HERE>>",
 
-            // Set a unique ID for the player. This can be the player's ID in your game. This can be hardcoded.
-            ExternalUserId = Environment.GetEnvironmentVariable("IKON_SDK_USER_ID") ?? "<<SET_USER_ID_HERE>>",
+                // Set a unique ID for the player. This can be the player's ID in your game. This can be hardcoded.
+                ExternalUserId = Environment.GetEnvironmentVariable("IKON_SDK_USER_ID") ?? "<<SET_USER_ID_HERE>>",
 
-            // Use the production endpoint by default. Set to false to use the development endpoint.
-            UseProductionEndpoint = Environment.GetEnvironmentVariable("IKON_SDK_USE_PROD_ENDPOINT")?.Trim()
-                .Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? true,
+                // Set the channel key to use
+                ChannelKey = Environment.GetEnvironmentVariable("IKON_SDK_CHANNEL_KEY") ?? "<<SET_CHANNEL_KEY_HERE>>",
+
+                BackendType = useProductionEndpoint ? BackendType.Production : BackendType.Development,
+                UserType = UserType.Human,
+            },
 
             Description = "Ikon AI SDK Unity Example",
             DeviceId = Utils.GenerateDeviceId(),
             ProductId = "Ikon.Sdk.DotNet.Examples.Unity",
             InstallId = "1",
-            UserType = UserType.Human,
             OpcodeGroupsFromServer = Opcode.GROUP_ALL,
             OpcodeGroupsToServer = Opcode.GROUP_ALL
         };
 
-        // Set the channel key to use
-        var channelKey = Environment.GetEnvironmentVariable("IKON_SDK_CHANNEL_KEY") ?? "<<SET_CHANNEL_KEY_HERE>>";
+        _ikonClient = new IkonClient(config);
+        _ikonClient.MessageReceivedAsync += OnMessageReceived;
+        _ikonClient.AudioInputStreamBeginAsync += OnAudioStreamBegin;
+        _ikonClient.AudioInputFrameAsync += OnAudioFrame;
+        _ikonClient.AudioInputStreamEndAsync += OnAudioStreamEnd;
 
-        _ikonClient = await Sdk.CreateIkonClientAsync(ikonClientInfo);
-
-        _channel = Channel.Create(_ikonClient, channelKey);
-        _channel.Text += OnChannelText;
-        _channel.AudioStreamBegin += OnAudioStreamBegin;
-        _channel.AudioFrame += OnAudioFrame;
-        _channel.AudioStreamEnd += OnAudioStreamEnd;
-        _channel.SpeechRecognized += OnSpeechRecognized;
-
-        await _channel.ConnectAsync();
-        _channel.SignalReady();
+        await _ikonClient.ConnectAsync();
+        await _ikonClient.SignalReadyAsync();
     }
 
     public async void OnApplicationQuit()
@@ -157,14 +158,14 @@ public class SceneHandler : MonoBehaviour
                 float[] samples = new float[samplesLength * _recordingAudioChannels];
                 _recordingAudioClip.GetData(samples, _previousMicrophonePosition);
                 _previousMicrophonePosition = currentMicrophonePosition;
-                _channel.SendAudio(samples, RecordingAudioSampleRate, _recordingAudioChannels, _areFirstSamples, _shouldStopRecording); // First samples should be sent with IsFirst=true
+                _ = _ikonClient.SendAudioAsync(samples, RecordingAudioSampleRate, _recordingAudioChannels, _areFirstSamples, _shouldStopRecording); // First samples should be sent with IsFirst=true
                 _areFirstSamples = false;
             }
 
             // If any samples were sent, then it should be made sure that the last samples are sent with IsLast=true
             if (samplesLength == 0 && _shouldStopRecording && !_areFirstSamples)
             {
-                _channel.SendAudio(new float[_recordingAudioChannels], RecordingAudioSampleRate, _recordingAudioChannels, false, true);
+                _ = _ikonClient.SendAudioAsync(new float[_recordingAudioChannels], RecordingAudioSampleRate, _recordingAudioChannels, false, true);
             }
 
             if (_shouldStopRecording)
@@ -179,19 +180,43 @@ public class SceneHandler : MonoBehaviour
 
     private void SendCurrentInput()
     {
-        _channel.SendText(ChatInputField.text, sendBackToSender: true);
+#pragma warning disable CS0618
+        _ikonClient.SendTextLegacy(ChatInputField.text, sendBackToSender: true);
+#pragma warning restore CS0618
         ChatInputField.text = string.Empty;
         ChatInputField.ActivateInputField();
     }
 
-    private async Task OnChannelText(object sender, Channel.TextArgs e)
+    private Task OnMessageReceived(object sender, MessageEventArgs e)
     {
-        await Task.CompletedTask;
-
-        _mainThreadActions.Enqueue(() =>
+        switch (e.Message.Opcode)
         {
-            ChatOutputText.text += $"{e.UserName}: {e.Text}\n\n";
-        });
+            case Opcode.ACTION_TEXT_OUTPUT:
+            {
+                var payload = e.Message.GetPayload<ActionTextOutput>();
+                _mainThreadActions.Enqueue(() =>
+                {
+                    ChatOutputText.text += $"{payload.UserId}: {payload.Text}\n\n";
+                });
+                break;
+            }
+
+            case Opcode.ACTION_SPEECH_RECOGNIZED:
+            {
+                var payload = e.Message.GetPayload<ActionSpeechRecognized>();
+                if (payload.WasSuccessful)
+                {
+                    Debug.Log($"Speech recognized: {payload.Text}");
+                }
+                else
+                {
+                    Debug.LogWarning("Speech could not be recognized");
+                }
+                break;
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     private void OnSendButtonPressStart()
@@ -215,10 +240,8 @@ public class SceneHandler : MonoBehaviour
         }
     }
 
-    private async Task OnAudioStreamBegin(object sender, Channel.AudioStreamBeginArgs e)
+    private Task OnAudioStreamBegin(object sender, AudioInputStreamBeginEventArgs e)
     {
-        await Task.CompletedTask;
-
         e.SampleRate = PlaybackAudioSampleRate;
 
         if (!_audioStreams.ContainsKey(e.StreamId))
@@ -229,8 +252,8 @@ public class SceneHandler : MonoBehaviour
                 var audioSourceObject = new GameObject(audioSourceName);
                 var audioSource = audioSourceObject.AddComponent<AudioSource>();
                 var audioSourceHandler = audioSourceObject.AddComponent<AudioSourceHandler>();
-                audioSourceHandler.Channels = e.Channels;
-                audioSource.clip = AudioClip.Create(audioSourceName, e.SampleRate * e.Channels * 10, e.Channels, e.SampleRate, true);
+                audioSourceHandler.Channels = e.ChannelCount;
+                audioSource.clip = AudioClip.Create(audioSourceName, e.SampleRate * e.ChannelCount * 10, e.ChannelCount, e.SampleRate, true);
                 audioSource.loop = true;
                 audioSource.Play();
 
@@ -241,22 +264,22 @@ public class SceneHandler : MonoBehaviour
                 };
             });
         }
+
+        return Task.CompletedTask;
     }
 
-    private async Task OnAudioFrame(object sender, Channel.AudioFrameArgs e)
+    private Task OnAudioFrame(object sender, AudioInputFrameEventArgs e)
     {
-        await Task.CompletedTask;
-
         if (_audioStreams.TryGetValue(e.StreamId, out var audioStream))
         {
             audioStream.AudioSourceHandler.AddSamples(e.Samples);
         }
+
+        return Task.CompletedTask;
     }
 
-    private async Task OnAudioStreamEnd(object sender, Channel.AudioStreamEndArgs e)
+    private Task OnAudioStreamEnd(object sender, AudioInputStreamEndEventArgs e)
     {
-        await Task.CompletedTask;
-
         if (_audioStreams.TryGetValue(e.StreamId, out var audioStream))
         {
             _mainThreadActions.Enqueue(() =>
@@ -265,34 +288,22 @@ public class SceneHandler : MonoBehaviour
                 _audioStreams.Remove(e.StreamId);
             });
         }
-    }
 
-    private async Task OnSpeechRecognized(object sender, Channel.SpeechRecognizedArgs e)
-    {
-        await Task.CompletedTask;
-
-        if (e.WasSuccessful)
-        {
-            Debug.Log($"Speech recognized: {e.Text}");
-        }
-        else
-        {
-            Debug.LogWarning("Speech could not be recognized");
-        }
+        return Task.CompletedTask;
     }
 
     private void OnLogEvent(object sender, LogEvent logEvent)
     {
         switch (logEvent.Type)
         {
-            case Ikon.Common.Core.LogType.Warning:
+            case LogType.Warning:
             {
                 Debug.LogWarning($"{logEvent.Type}: {logEvent.Message}");
                 break;
             }
 
-            case Ikon.Common.Core.LogType.Error:
-            case Ikon.Common.Core.LogType.Critical:
+            case LogType.Error:
+            case LogType.Critical:
             {
                 Debug.LogError($"{logEvent.Type}: {logEvent.Message}");
                 break;
